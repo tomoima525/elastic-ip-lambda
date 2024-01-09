@@ -37,8 +37,8 @@ importers:
         specifier: ^5.57.0
         version: 5.62.0(eslint@8.56.0)(typescript@5.3.3)
       aws-cdk:
-        specifier: 2.72.0
-        version: 2.72.0
+        specifier: 2.112.0
+        version: 2.112.0
       eslint:
         specifier: ^8.37.0
         version: 8.56.0
@@ -57,6 +57,8 @@ importers:
       typescript:
         specifier: ~5.3.3
         version: 5.3.3
+
+  functions/current-ip: {}
 
 packages:
 
@@ -1131,8 +1133,8 @@ packages:
       - table
       - yaml
 
-  /aws-cdk@2.72.0:
-    resolution: {integrity: sha512-Dpqw3qBob//8QuNquzxlfAKrTXA5oDj25GptigDq2X6bh5Ho1WBiN1C71zngwiR3OPEC5CXcYKiqxBXtXd9JiQ==}
+  /aws-cdk@2.112.0:
+    resolution: {integrity: sha512-b/8htaasb/WQUg+Wg+2N+5ztLeXDL+2UwlaKSeJStz6FG1bzm7n02yLu8RUbeHxbZGkb4P0IMiYqU/LIV5/Jow==}
     engines: {node: '>= 14.15.0'}
     hasBin: true
     optionalDependencies:

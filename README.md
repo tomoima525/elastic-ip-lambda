@@ -1,90 +1,70 @@
-# CDK lambda development template
+# Static IP for Lamdba function, using NAT instance
 
-This is a CDK template to develop lambda functions in your isolated environment
+- This is a sample project to demonstrate how to setup Elastic IP for a Lambda function, using a NAT instance.
 
-# Why we need this?
+## Why static IP?
 
-When you are building a lambda function using CDK in a team, your functions get overriden by other developers functions when they deploy. By having isolated CDK environment which imports external resources (e.g. DynamoDB, S3), we can safely develop our lambda functions. Once you confirmed that your function is working properly in your environment, you can copy your code to your base CDK project.
+- Some services require a static IP to allow access. For example, Stripe requires a IP allowlist to access restricted data. You can allowlist the IP of a Lambda function to access those services.
 
-<p align="center">
-<img src="https://user-images.githubusercontent.com/6277118/179318780-e5110421-f945-40fa-acdc-514b3945d32c.png" width=800px />
-</p>
+## Why NAT instance?
 
-# How to use
+While you can setup static IP for a Lambda function using a NAT Gateway, it is expensive. NAT instance is much cheaper when you don't have to worry about the scalability of the NAT instance.
 
-1. Set your development Stack name
+## Architecture
 
-- create .env file and add your setup
+- NAT instance exists in multiple AZs, with a route table that routes all traffic to the internet gateway.
+- NAT instances are in a public subnet, with a Elastic IP attached to them.
+- Lambda function is in a private subnet, with a route table that routes all traffic to the NAT instance.
 
-```
-YOUR_NAME=tomo
-```
+- You can see that the Lambda function has a static IP address, which is the Elastic IP of the NAT instance.
 
-- When you deploy your CDK, it will be named as `DevStack${yourname}`
+## Tricks
 
-2. Add your external resources & lambda function
+These are the tricks that I used to make this work.
 
-```
-export class DevelopmentTemplateStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props);
-    // Reference your resouces
-    // See how to reference external resources https://docs.aws.amazon.com/cdk/v2/guide/resources.html
+### 1. Use AMI for NAT
 
-    const s3Bucket = s3.Bucket.fromBucketArn(this, 'MyBucket', 'arn:aws:s3:::my-bucket-name');
+- We use AMI that is specifically for NAT
 
-    // Set your lambda
-    cont yourLambda = new lambda_nodejs.NodejsFunction(this, "yourlambda", {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: "handler",
-      entry: path.join(`${__dirname}/../`, "functions", "yourlambda/index.ts"),
-      environment: {
-        BUCKET: props.s3Bucket.bucketName,
-      },
-    });
-
-    props.s3Bucket.grantReadWrite(yourLambda);
-
-  }
-}
-```
-
-3. Your lambda
-
-- This project uses yarn 2+ workspace.
-- Add your function under `functions` (e.g. `functions/yourlambda/index.ts`)
-- you need to run `yarn install` at the root of the project so that yarn can recognize your function.
-- If you want add other dependencies, call `yarn init` under `functions/yourlambda` then `yarn add {dependecies you want to add}`
-
-4. Deploy
+- If you want, you can select your own AMI, but you need to make sure that the AMI is deployed under the following settings:
+  - Source/Dest. check is disabled
+  - Exists in public subnet of VPC created
+  - Set Keypair for SSH access
+  - Set Security Group for SSH access
+  - Configure the route tables of the private subnets to point to the NAT instance
+- Then configure below after SSH into the NAT instance
 
 ```
-pnpm cdk:deploy
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+sudo iptables -t nat -A POSTROUTING -o ens5 -s 0.0.0.0/0 -j MASQUERADE
 ```
 
-# Tips
+Ref: https://medium.com/nerd-for-tech/how-to-turn-an-amazon-linux-2023-ec2-into-a-nat-instance-4568dad1778f
 
-### Accessing lambda layer
+### 2. Use escape hatch to attach EIP
 
-You can use submodules to access the lambda layer
-
-```
-git submodule add git@github.com:yourproject/main-cdk.git main-cdk
-```
-
-Then add the path in `tsconfig.json`
+- We access NAT instance by accessing the child node of VPC
 
 ```
-{
-  ...
-      "paths": {
-      "/opt/nodejs/s3": ["main-cdk/functions/layers/awsservice/nodejs/s3"]
-    }
-}
+const natInstance1 = vpc.node
+  .findChild("public-Subnet1")
+  .node.findChild("NatInstance") as ec2.Instance;
 ```
 
-and when you update submodule
+-
+- Ref: https://docs.aws.amazon.com/cdk/v2/guide/cfn_layer.html
+
+## How to deploy
+
+- Update `.env` file with your AWS account ID.
 
 ```
-git submodule update --recursive --remote --merge
+CDK_ACCOUNT=xxxxxxxxxxxx
+CDK_REGION=us-west-2
+```
+
+```
+pnpm i
+pnpm cdk deploy
 ```
