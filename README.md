@@ -45,7 +45,16 @@ const natInstance1 = vpc.node
 
 ### Pattern2. Create your own AMI
 
-- In the CDK, I used Amazon Linux 2023, which has `ens5` as a primary network interface.
+- In the CDK, I used Amazon Linux 2023, which has `ens5` as a primary network interface. This may differ depending on the AMI you use. You can check the primary network interface by running `netstat -i` command on the instance. We use this interface to set up NAT.
+
+```
+netstat -i
+Kernel Interface table
+Iface             MTU    RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
+ens5             9001    19194      0      0 0          2275      0      0      0 BMRU
+lo              65536       12      0      0 0            12      0      0      0 LRU
+```
+
 - The AMI should be deployed under the following settings:
 
   - Source/Dest. check is disabled
