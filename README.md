@@ -66,13 +66,20 @@ lo              65536       12      0      0 0            12      0      0      
 
 ```
 //init-script.sh
+# install iptable
 sudo yum install iptables-services -y
 sudo systemctl enable iptables
 sudo systemctl start iptables
 
+# Turning on IP Forwarding
 echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
+
+# Making a catchall rule for routing and masking the private IP
+# Amazon Linux 2023 primay network interface is ens5
 sudo iptables -t nat -A POSTROUTING -o ens5 -s 0.0.0.0/0 -j MASQUERADE
+sudo /sbin/iptables -F FORWARD
+sudo service iptables save
 ```
 
 - Inside CDK, this script is set up as follows:
@@ -83,9 +90,35 @@ const userData = fs.readFileSync(initScriptPath, "utf8");
 customNat.addUserData(userData);
 ```
 
-- Elastic IP is automatically attached to the NAT instance by `associatePublicIpAddress` parameter of `ec2.Instance` constructor.
+- Route all traffic from private subnets to NAT instance. Since AZ is 2, we have 2 private subnets
 
-Ref:
+```
+const privateSubnets = vpc.selectSubnets({
+  subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+}).subnets as ec2.Subnet[];
+privateSubnets[0].addRoute(`NAT-route-0`, {
+  routerId: customNat.instanceId,
+  routerType: ec2.RouterType.INSTANCE,
+  destinationCidrBlock: "0.0.0.0/0",
+});
+privateSubnets[1].addRoute(`NAT-route-1`, {
+  routerId: customNat.instanceId,
+  routerType: ec2.RouterType.INSTANCE,
+  destinationCidrBlock: "0.0.0.0/0",
+});
+```
+
+- Set up Elastic IP for NAT instance
+
+```
+const elasticIp = new ec2.CfnEIP(this, "ElasticIp");
+new ec2.CfnEIPAssociation(this, "EipAssociation", {
+  eip: elasticIp.ref,
+  instanceId: customNat.instanceId,
+});
+```
+
+## References
 
 - https://docs.aws.amazon.com/vpc/latest/userguide/VPC_NAT_Instance.html
 - https://medium.com/nerd-for-tech/how-to-turn-an-amazon-linux-2023-ec2-into-a-nat-instance-4568dad1778f
@@ -101,5 +134,6 @@ CDK_REGION=us-west-2
 
 ```
 pnpm i
-pnpm cdk deploy
+pnpm cdk deploy:ami // for using existing AMI (Pattern1)
+pnpm cdk deploy:custom // for using custom AMI (Pattern2)
 ```
