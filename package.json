@@ -7,7 +7,8 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk:deploy:ami": "cdk deploy",
-    "cdk:deploy:custom": "cdk deploy --app 'npx ts-node bin/nat-instance.ts'"
+    "cdk:deploy:custom": "cdk deploy --app 'npx ts-node bin/nat-instance.ts'",
+    "cdk:deploy:exp": "cdk deploy --app 'npx ts-node bin/nat-instance-exp.ts'"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
