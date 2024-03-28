@@ -125,12 +125,6 @@ export class VpcRDSStack extends Stack {
       keyName: "testkeypair2", // replace with your own keypair
     });
 
-    // ---- migration step 1. Create custom nat in the same VPC ----
-
-    // Step 2: Remove Nat Gateway manually from console
-
-    // Step 3: Route all traffic from private subnets to NAT instance from console. Since AZ is 2, we have 2 private subnets
-
     // ---- A function to check the current Public IP address ----
 
     new lambda_nodejs.NodejsFunction(this, "CheckCurrentIP", {
