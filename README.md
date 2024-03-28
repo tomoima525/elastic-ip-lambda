@@ -118,6 +118,33 @@ new ec2.CfnEIPAssociation(this, "EipAssociation", {
 });
 ```
 
+## Migrating existing NAT Gateway to NAT instance
+
+- If you have an existing NAT Gateway, you can migrate to NAT instance with some manual steps.
+
+Let's say you have VPC that has RDS and Lambda function. For public access, you have a NAT Gateway in the public subnet. Below is the CDK code to set up such environment.
+
+```
+pnpm cdk deploy --app 'npx ts-node bin/simple-nat.ts'
+```
+
+Now let's migrate to NAT instance.
+
+### Step 1. Create custom nat in the same VPC
+
+```
+pnpm cdk deploy --app 'npx ts-node bin/nat-migration.ts'
+```
+
+### Step 2: Remove NAT Gateway manually from console
+
+- We can not remove NAT Gatwway from CDK due to the bug related to VPC update
+  - https://github.com/aws/aws-cdk/issues/6683
+
+### Step 3: Route all traffic from private subnets to NAT instance
+
+- You can do so from AWS console. Since AZ is 2, we have 2 private subnets
+
 ## References
 
 - https://docs.aws.amazon.com/vpc/latest/userguide/VPC_NAT_Instance.html
