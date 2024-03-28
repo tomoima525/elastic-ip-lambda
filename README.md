@@ -140,10 +140,24 @@ pnpm cdk deploy --app 'npx ts-node bin/nat-migration.ts'
 
 - We can not remove NAT Gatwway from CDK due to the bug related to VPC update
   - https://github.com/aws/aws-cdk/issues/6683
+- Go to NAT gateway in VPC console to delete the NAT Gateway
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/651d7ea7-3327-4024-bc04-1626de917fe4)
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/36ab1645-54eb-49d5-b19a-3e0eb7b28a4a)
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/1897f1da-4590-4bfb-8b36-70224cdec7d4)
 
 ### Step 3: Route all traffic from private subnets to NAT instance
-
+- `0.0.0.0/0` routing to NAT Gateway in Private Subnet will cause conflicts when we route all traffic from Private subnets to NAT instance route
 - You can do so from AWS console. Since AZ is 2, we have 2 private subnets
+- Head to `VPC` and select `Resource map` tab
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/20f10bff-dc31-4072-a48a-ff6dab534d46)
+
+- Select Private Subnet from Route tables in Resource map
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/f0cb16f0-88fe-462a-a551-1ba9499c9412)
+- Remove NAT Gateway routes and remove
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/2dddc600-af19-46aa-81ba-be87fac4f024)
+- Add NAT instance instead
+  ![image](https://github.com/tomoima525/elastic-ip-lambda/assets/6277118/5239c734-2c36-4d2f-8606-57173ff68975)
+
 
 ## References
 
